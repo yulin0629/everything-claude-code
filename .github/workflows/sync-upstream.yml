@@ -1,0 +1,48 @@
+name: Sync Fork with Upstream
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: "0 0 * * *"
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: git remote add upstream https://github.com/affaan-m/everything-claude-code.git
+
+      - name: Fetch upstream
+        run: git fetch upstream
+
+      - name: Merge upstream/main into main
+        run: |
+          git checkout main
+          git merge upstream/main -m "chore: sync with upstream" --no-edit
+          git push origin main
+        continue-on-error: true
+
+      - name: Create PR on conflict
+        if: failure()
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: auto-sync/upstream-conflict
+          base: main
+          title: "🔄 Sync: Upstream conflict needs manual resolution"
+          body: |
+            Automatic sync from upstream `affaan-m/everything-claude-code` failed due to conflicts.
+            Please resolve manually.
+          labels: auto-sync, needs-attention
