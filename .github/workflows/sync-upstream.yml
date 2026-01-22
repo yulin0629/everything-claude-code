@@ -32,3 +32,17 @@ jobs:
           git checkout main
           git merge upstream/main -m "chore: sync with upstream" --no-edit
           git push origin main
+        continue-on-error: true
+
+      - name: Create PR on conflict
+        if: failure()
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: auto-sync/upstream-conflict
+          base: main
+          title: "🔄 Sync: Upstream conflict needs manual resolution"
+          body: |
+            Automatic sync from upstream `affaan-m/everything-claude-code` failed due to conflicts.
+            Please resolve manually.
+          labels: auto-sync, needs-attention
